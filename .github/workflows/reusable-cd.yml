@@ -16,13 +16,6 @@ on:
         required: true
         type: string
         description: 'public or private'
-    secrets:
-      EC2_SSH_KEY:
-        required: true
-      EC2_HOST:
-        required: true
-      EC2_USERNAME:
-        required: true
 
 env:
   AWS_REGION: us-east-1
