@@ -11,6 +11,12 @@ env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: public.ecr.aws/e7w4k6e4
 
+secrets:
+  AWS_ACCESS_KEY_ID:
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    required: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

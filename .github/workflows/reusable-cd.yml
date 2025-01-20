@@ -23,6 +23,14 @@ env:
   NETWORK_PUBLIC: reinput-network-public
   NETWORK_PRIVATE: reinput-network-private
 
+secrets:
+  EC2_SSH_KEY:
+    required: true
+  EC2_HOST:
+    required: true
+  EC2_USERNAME:
+    required: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
