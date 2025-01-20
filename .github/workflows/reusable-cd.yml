@@ -16,20 +16,23 @@ on:
         required: true
         type: string
         description: 'public or private'
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      EC2_SSH_KEY:
+        required: true
+      EC2_HOST:
+        required: true
+      EC2_USERNAME:
+        required: true
 
 env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: public.ecr.aws/e7w4k6e4
   NETWORK_PUBLIC: reinput-network-public
   NETWORK_PRIVATE: reinput-network-private
-
-secrets:
-  EC2_SSH_KEY:
-    required: true
-  EC2_HOST:
-    required: true
-  EC2_USERNAME:
-    required: true
 
 jobs:
   deploy:
