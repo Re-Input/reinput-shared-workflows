@@ -1,0 +1,80 @@
+name: Reusable CD Workflow
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        required: true
+        type: string
+      container-name:
+        required: true
+        type: string
+      container-port:
+        required: true
+        type: string
+      network-type:
+        required: true
+        type: string
+        description: 'public or private'
+    secrets:
+      EC2_SSH_KEY:
+        required: true
+      EC2_HOST:
+        required: true
+      EC2_USERNAME:
+        required: true
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: public.ecr.aws/e7w4k6e4
+  NETWORK_PUBLIC: reinput-network-public
+  NETWORK_PRIVATE: reinput-network-private
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/reinput-key.pem
+          chmod 600 ~/.ssh/reinput-key.pem
+          cat >>~/.ssh/config <<END
+          Host ec2
+            HostName ${{ secrets.EC2_HOST }}
+            User ${{ secrets.EC2_USERNAME }}
+            IdentityFile ~/.ssh/reinput-key.pem
+            StrictHostKeyChecking no
+          END
+
+      - name: Deploy to EC2
+        run: |
+          ssh ec2 '
+            aws ecr-public get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+
+            if [ "${{ inputs.network-type }}" = "public" ]; then
+              NETWORK_NAME="${{ env.NETWORK_PUBLIC }}"
+            else
+              NETWORK_NAME="${{ env.NETWORK_PRIVATE }}"
+            fi
+
+            if ! docker network ls | grep -q $NETWORK_NAME; then
+              docker network create $NETWORK_NAME
+            fi
+
+            if docker ps -a | grep -q ${{ inputs.container-name }}; then
+              docker stop ${{ inputs.container-name }}
+              docker rm ${{ inputs.container-name }}
+              docker rmi ${{ env.ECR_REGISTRY }}/${{ inputs.image-name }}:latest || true
+            fi
+
+            docker pull ${{ env.ECR_REGISTRY }}/${{ inputs.image-name }}:latest
+            docker run -d \
+              --name ${{ inputs.container-name }} \
+              --network $NETWORK_NAME \
+              -p ${{ inputs.container-port }}:${{ inputs.container-port }} \
+              ${{ env.ECR_REGISTRY }}/${{ inputs.image-name }}:latest
+            
+            docker ps | grep ${{ inputs.container-name }}
+          '
