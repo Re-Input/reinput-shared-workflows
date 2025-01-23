@@ -12,10 +12,6 @@ on:
       container-port:
         required: true
         type: string
-      network-type:
-        required: true
-        type: string
-        description: 'public or private'
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -31,8 +27,6 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: public.ecr.aws/e7w4k6e4
-  NETWORK_PUBLIC: reinput-network-public
-  NETWORK_PRIVATE: reinput-network-private
 
 jobs:
   deploy:
@@ -57,16 +51,6 @@ jobs:
           ssh ec2 '
             aws ecr-public get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
-            if [ "${{ inputs.network-type }}" = "public" ]; then
-              NETWORK_NAME="${{ env.NETWORK_PUBLIC }}"
-            else
-              NETWORK_NAME="${{ env.NETWORK_PRIVATE }}"
-            fi
-
-            if ! docker network ls | grep -q $NETWORK_NAME; then
-              docker network create $NETWORK_NAME
-            fi
-
             if docker ps -a | grep -q ${{ inputs.container-name }}; then
               docker stop ${{ inputs.container-name }}
               docker rm ${{ inputs.container-name }}
@@ -76,8 +60,7 @@ jobs:
             docker pull ${{ env.ECR_REGISTRY }}/${{ inputs.image-name }}:latest
             docker run -d \
               --name ${{ inputs.container-name }} \
-              --network $NETWORK_NAME \
-              -p ${{ inputs.container-port }}:${{ inputs.container-port }} \
+              --network host \
               ${{ env.ECR_REGISTRY }}/${{ inputs.image-name }}:latest
             
             docker ps | grep ${{ inputs.container-name }}
